@@ -2,6 +2,8 @@ import numpy as np
 from rdp import rdp
 import matplotlib.pyplot as plt
 from svgpathtools import svg2paths
+import cairo
+import os
 
 import numpy.typing as npt
 from typing import Union
@@ -264,6 +266,54 @@ class LinearPaths2D:
         return LinearPaths2D(self._paths + other._paths)
 
     @staticmethod
+    def hstack(
+        list_of_paths: list["LinearPaths2D"], offset: float = 0.0
+    ) -> "LinearPaths2D":
+        """Stacks paths objects horizontally.
+
+        Does not zero paths before stacking.
+        Stacks from left to right in the positive x direction.
+
+        Args:
+            list_of_paths: Objects to stack.
+            offset: The spacing between the paths objects.
+
+        Returns:
+            A horizontally stacked LinerPaths2D object.
+        """
+        paths = list_of_paths[0][:]
+        _, _, max_x, _ = paths.bbox
+        for next_paths in list_of_paths[1:]:
+            paths += next_paths.shift(max_x + offset)
+            _, _, max_x, _ = paths.bbox
+
+        return paths
+
+    @staticmethod
+    def vstack(
+        list_of_paths: list["LinearPaths2D"], offset: float = 0.0
+    ) -> "LinearPaths2D":
+        """Stacks paths objects vertically.
+
+        Does not zero paths before stacking.
+        Stacks from left to right in the positive y direction.
+
+        Args:
+            list_of_paths: Objects to stack.
+            offset: The spacing between the paths objects.
+
+        Returns:
+            A vertically stacked LinerPaths2D object.
+        """
+        paths = list_of_paths[0][:]
+        _, _, _, max_y = paths.bbox
+        for next_paths in list_of_paths[1:]:
+            paths += next_paths.shift(y=max_y + offset)
+            _, _, _, max_y = paths.bbox
+
+        return paths
+
+    @staticmethod
     def from_svg(file_name: str) -> "LinearPaths2D":
         """Reads vector paths from an SVG.
 
@@ -283,10 +333,56 @@ class LinearPaths2D:
             # Need to linearize the path.
             linear_path = np.concatenate(
                 [
-                    segment.point(np.linspace(0, 1, np.ceil(segment.length())))
+                    segment.point(np.linspace(0, 1, int(np.ceil(segment.length()))))
                     for segment in path
                 ]
             )
             paths += [np.vstack([linear_path.real, linear_path.imag]).T]
 
         return LinearPaths2D(paths).vflip()
+
+    @staticmethod
+    def from_string(
+        text: str, font: str = "Poddins", slant: str = "NORMAL", weight: str = "NORMAL"
+    ) -> "LinearPaths2D":
+        """Creates a LinearPaths2D object from text.
+
+        Args:
+            text: Desired text.
+            font: Any of the supported cairo fonts.
+            slant: Choose from NORMAL, ITALIC, OBLIQUE.
+            weight: Choose from NORMAL, BOLD.
+        """
+        _FONT_SIZE = 50
+        _TEMP_FILE_NAME = "tmp_pathprocessing"
+
+        slant_dict = {
+            "NORMAL": cairo.FONT_SLANT_NORMAL,
+            "ITALIC": cairo.FONT_SLANT_ITALIC,
+            "OBLIQUE": cairo.FONT_SLANT_OBLIQUE,
+        }
+
+        weight_dict = {
+            "NORMAL": cairo.FONT_WEIGHT_NORMAL,
+            "BOLD": cairo.FONT_WEIGHT_BOLD,
+        }
+
+        with cairo.SVGSurface(
+            _TEMP_FILE_NAME, len(text) * _FONT_SIZE, _FONT_SIZE + 2
+        ) as surface:
+            Context = cairo.Context(surface)
+            Context.set_font_size(_FONT_SIZE)
+
+            # Font Style
+            Context.select_font_face(font, slant_dict[slant], weight_dict[weight])
+
+            # position for the text
+            Context.move_to(0, _FONT_SIZE)
+            # displays the text
+            Context.text_path(text)
+            Context.set_line_width(1)
+            Context.stroke()
+
+        paths = LinearPaths2D.from_svg(_TEMP_FILE_NAME)
+        os.remove(_TEMP_FILE_NAME)
+        return paths
