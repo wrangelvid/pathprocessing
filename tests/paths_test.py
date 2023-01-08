@@ -192,13 +192,16 @@ class TestLinear2DPaths(unittest.TestCase):
         paths = LinearPaths2D(
             [
                 np.array([[0, 0], [0, 0.2]]),
+                np.array([[0, 0], [0, 0.21]]),
                 np.array([[0, 0], [0, 2], [1, 1]]),
                 np.array([[3, -1], [2, 3], [1, 1]]),
             ]
         )
 
-        expected_value = [[[0, 0], [0, 2], [1, 1]], [[3, -1], [2, 3], [1, 1]]]
-        result = paths.minimum_length(1.0).tolist()
+        expected_value = [[[0, 0], [0, 0.21]],
+                          [[0, 0], [0, 2], [1, 1]],
+                          [[3, -1], [2, 3], [1, 1]]]
+        result = paths.minimum_length(0.21).tolist()
 
         self.assertEqual(result, expected_value)
 

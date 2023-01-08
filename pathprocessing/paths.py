@@ -224,7 +224,7 @@ class LinearPaths2D:
 
         def path_length(path):
             pairwise_distance = np.sqrt(
-                np.sum(np.square(path[1:] - path[0][:-1]), axis=1)
+                np.sum(np.square(path[1:] - path[:-1]), axis=1)
             )
             return np.sum(pairwise_distance)
 
