@@ -416,7 +416,7 @@ class LinearPaths2D:
                 horizontal_path = [segment[::-1] for segment in horizontal_path[::-1]]
             reverse = not reverse
             paths += horizontal_path
-        return LinearPaths2D(paths)
+        return LinearPaths2D(paths).vflip()
 
     @staticmethod
     def make_qrcode(data:str, stroke_size: float, width: float, error_correction:str = 'L') -> "LinearPaths2D":
