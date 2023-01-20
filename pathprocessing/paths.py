@@ -388,6 +388,36 @@ class LinearPaths2D:
         os.remove(_TEMP_FILE_NAME)
         return paths
 
+
+    @staticmethod
+    def raster_image(img, desired_height:float = 0.4, stroke_width:float = 0.001) -> "LinearPaths2D":
+        im = np.array(img)
+        scaling_factor = desired_height / (im.shape[0] - 1)
+
+        y_list = np.linspace(0, desired_height, int(np.ceil(desired_height/stroke_width)))
+        row_idx_list = np.round(y_list / scaling_factor).astype(int)
+        paths = []
+        reverse = False
+
+        for y, row_idx in zip(y_list, row_idx_list):
+            row = im[row_idx]
+            horizontal_path = []
+            segment = []
+            for col_idx, value in zip(range(len(row)), row):
+                if segment:
+                    if value or col_idx == len(row) - 1:
+                        segment.append((col_idx*scaling_factor, row_idx*scaling_factor))
+                        horizontal_path.append(np.array(segment))
+                        segment = []
+                else:
+                    if not value:
+                        segment.append((col_idx*scaling_factor, row_idx*scaling_factor))
+            if reverse:
+                horizontal_path = [segment[::-1] for segment in horizontal_path]
+            reverse = not reverse
+            paths += horizontal_path
+        return LinearPaths2D(paths)
+
     @staticmethod
     def make_qrcode(data:str, stroke_size: float, width: float, error_correction:str = 'L') -> "LinearPaths2D":
         padding = 1
@@ -406,28 +436,4 @@ class LinearPaths2D:
         qr.make(fit=True)
 
         img = qr.make_image(fill_color="black", back_color="white")
-        M = np.array(qr.get_matrix())
-
-
-        paths = []
-        scaling_factor = width / (M.shape[0] - 2*padding)
-        for i, row in enumerate(M):
-            horizontal_path = []
-            segment = []
-            for j, value in enumerate(row):
-                if segment:
-                    if not value:
-                        segment.append(((j - padding)*scaling_factor, (i - padding)*scaling_factor))
-                        horizontal_path.append(np.array(segment))
-                        segment = []
-                else:
-                    if value:
-                        segment.append(((j - padding)*scaling_factor, (i - padding)*scaling_factor))
-            
-            reverse = 1 if i % 2 else -1
-            for offset in np.arange(0, scaling_factor, stroke_size):
-                offset_path = [segment[::reverse] + np.array([0, offset]) for segment in horizontal_path[::reverse]]
-                reverse *= -1
-                paths += offset_path
-
-        return LinearPaths2D(paths).vflip()
+        return LinearPaths2D.raster_image(img, width, stroke_size)
