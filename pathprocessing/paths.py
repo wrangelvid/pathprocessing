@@ -3,6 +3,7 @@ from rdp import rdp
 import matplotlib.pyplot as plt
 from svgpathtools import svg2paths
 import cairo
+import qrcode
 import os
 
 import numpy.typing as npt
@@ -386,3 +387,47 @@ class LinearPaths2D:
         paths = LinearPaths2D.from_svg(_TEMP_FILE_NAME)
         os.remove(_TEMP_FILE_NAME)
         return paths
+
+    @staticmethod
+    def make_qrcode(data:str, stroke_size: float, width: float, error_correction:str = 'L') -> "LinearPaths2D":
+        padding = 1
+        map_error_str_to_enum = {'L':qrcode.constants.error_correct_L,
+                                 'M':qrcode.constants.error_correct_M,
+                                 'Q':qrcode.constants.error_correct_Q,
+                                 'H':qrcode.constants.error_correct_H
+                                 }
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=map_error_str_to_enum[error_correction],
+            box_size=10,
+            border=padding,
+        )
+        qr.add_data('davidvonwrangel.com')
+        qr.make(fit=True)
+
+        img = qr.make_image(fill_color="black", back_color="white")
+        M = np.array(qr.get_matrix())
+
+
+        paths = []
+        scaling_factor = width / (M.shape[0] - 2*padding)
+        for i, row in enumerate(M):
+            horizontal_path = []
+            segment = []
+            for j, value in enumerate(row):
+                if segment:
+                    if not value:
+                        segment.append(((j - padding)*scaling_factor, (i - padding)*scaling_factor))
+                        horizontal_path.append(np.array(segment))
+                        segment = []
+                else:
+                    if value:
+                        segment.append(((j - padding)*scaling_factor, (i - padding)*scaling_factor))
+            
+            reverse = 1 if i % 2 else -1
+            for offset in np.arange(0, scaling_factor, stroke_size):
+                offset_path = [segment[::reverse] + np.array([0, offset]) for segment in horizontal_path[::reverse]]
+                reverse *= -1
+                paths += offset_path
+
+        return LinearPaths2D(paths).vflip()
