@@ -391,10 +391,10 @@ class LinearPaths2D:
     @staticmethod
     def make_qrcode(data:str, stroke_size: float, width: float, error_correction:str = 'L') -> "LinearPaths2D":
         padding = 1
-        map_error_str_to_enum = {'L':qrcode.constants.error_correct_L,
-                                 'M':qrcode.constants.error_correct_M,
-                                 'Q':qrcode.constants.error_correct_Q,
-                                 'H':qrcode.constants.error_correct_H
+        map_error_str_to_enum = {'L':qrcode.constants.ERROR_CORRECT_L,
+                                 'M':qrcode.constants.ERROR_CORRECT_M,
+                                 'Q':qrcode.constants.ERROR_CORRECT_Q,
+                                 'H':qrcode.constants.ERROR_CORRECT_H
                                  }
         qr = qrcode.QRCode(
             version=None,
@@ -402,7 +402,7 @@ class LinearPaths2D:
             box_size=10,
             border=padding,
         )
-        qr.add_data('davidvonwrangel.com')
+        qr.add_data(data)
         qr.make(fit=True)
 
         img = qr.make_image(fill_color="black", back_color="white")
