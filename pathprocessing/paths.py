@@ -388,52 +388,113 @@ class LinearPaths2D:
         os.remove(_TEMP_FILE_NAME)
         return paths
 
-
     @staticmethod
-    def raster_image(img, desired_height:float = 0.4, stroke_width:float = 0.001) -> "LinearPaths2D":
-        im = np.array(img)
-        scaling_factor = desired_height / (im.shape[0] - 1)
+    def raster_image(
+        im: npt.NDArray[np.bool], height: float, stroke_size: float
+    ) -> "LinearPaths2D":
+        """Rasters an bitmap image into a LinearPaths2D object.
 
-        y_list = np.linspace(0, desired_height, int(np.ceil(desired_height/stroke_width)))
+        Rasters an image from top to bottom and switches the direction for each row.
+        The first row will be drawn from left ro right.
+        While the second row will be drawn from right to left.
+
+        Args:
+            img: A two dimensional bitmap. Black, so False will be rasterized.
+            height: The desired height of the LinearPaths2D object.
+            stroke_size: It determines the density of lines along the y axis.
+                A smaller stroke size will result in more lines to raster.
+
+        Returns:
+            A rasterized image as a LinearPaths2D object.
+        """
+        if len(im.shape) != 2:
+            raise Exception(
+                f"Bitmap is {len(im.shape)} dimensional. Must have two dimensions."
+            )
+
+        scaling_factor = height / (im.shape[0] - 1)
+
+        # Generate the list of y values for the raster lines.
+        # And the corresponding row index of the actual image.
+        y_list = np.linspace(0, height, int(np.ceil(height / stroke_size)))
         row_idx_list = np.round(y_list / scaling_factor).astype(int)
+
         paths = []
         reverse = False
-
         for y, row_idx in zip(y_list, row_idx_list):
             row = im[row_idx]
             horizontal_path = []
             segment = []
+
+            # Iterate through the values in the row.
             for col_idx, value in zip(range(len(row)), row):
                 if segment:
+                    # Segment already is non empty.
                     if value or col_idx == len(row) - 1:
-                        segment.append((col_idx*scaling_factor, row_idx*scaling_factor))
+                        # If we find a white pixel
+                        # or we reached the end of the image,
+                        # we complete the segment.
+                        segment.append((col_idx * scaling_factor, y))
                         horizontal_path.append(np.array(segment))
                         segment = []
                 else:
                     if not value:
-                        segment.append((col_idx*scaling_factor, row_idx*scaling_factor))
+                        # Found a black pixel.
+                        # Start at new segment.
+                        segment.append((col_idx * scaling_factor, y))
+
             if reverse:
+                # Reverse the horizontal path.
                 horizontal_path = [segment[::-1] for segment in horizontal_path[::-1]]
             reverse = not reverse
             paths += horizontal_path
-        return LinearPaths2D(paths)
+
+        return LinearPaths2D(paths).vflip().zero()
 
     @staticmethod
-    def make_qrcode(data:str, stroke_size: float, width: float, error_correction:str = 'L') -> "LinearPaths2D":
-        padding = 1
-        map_error_str_to_enum = {'L':qrcode.constants.ERROR_CORRECT_L,
-                                 'M':qrcode.constants.ERROR_CORRECT_M,
-                                 'Q':qrcode.constants.ERROR_CORRECT_Q,
-                                 'H':qrcode.constants.ERROR_CORRECT_H
-                                 }
+    def make_qrcode(
+        data: str, height: float, stroke_size: float, error_correction: str = "L"
+    ) -> "LinearPaths2D":
+        """Generates a rasterized QR Code path with the given data.
+
+        Args:
+            data: The string to be encoded in the QR Code.
+            height: The desired height of the LinearPaths2D object.
+            stroke_size: It determines the density of lines along the y axis.
+                A smaller stroke size will result in more lines to raster.
+            error_correction: Controls the error correction used for the QR Code.
+                Must be either L, M, Q, or H.
+                L corrects  7% or less.
+                M corrects 15% or less.
+                Q corrects 25% or less.
+                H corrects 30% or less.
+
+        Returns:
+            A rasterized version of a QR Code as a LinearPaths2D object.
+        """
+        map_error_str_to_enum = {
+            "L": qrcode.constants.ERROR_CORRECT_L,
+            "M": qrcode.constants.ERROR_CORRECT_M,
+            "Q": qrcode.constants.ERROR_CORRECT_Q,
+            "H": qrcode.constants.ERROR_CORRECT_H,
+        }
+
+        allowed_error_correction_types = list(map_error_str_to_enum.keys())
+        if error_correction not in allowed_error_correction_types:
+            raise Exception(
+                f"{error_correction} has to be one of the allowed types: {allowed_error_correction_types}"
+            )
+
+        # Generate a QR code.
         qr = qrcode.QRCode(
             version=None,
             error_correction=map_error_str_to_enum[error_correction],
             box_size=10,
-            border=padding,
+            border=1,
         )
         qr.add_data(data)
         qr.make(fit=True)
 
-        img = qr.make_image(fill_color="black", back_color="white")
-        return LinearPaths2D.raster_image(img, width, stroke_size)
+        # Raster image.
+        im = np.array(qr.make_image(fill_color="black", back_color="white"))
+        return LinearPaths2D.raster_image(im, height, stroke_size)
