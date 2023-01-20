@@ -413,7 +413,7 @@ class LinearPaths2D:
                     if not value:
                         segment.append((col_idx*scaling_factor, row_idx*scaling_factor))
             if reverse:
-                horizontal_path = [segment[::-1] for segment in horizontal_path]
+                horizontal_path = [segment[::-1] for segment in horizontal_path[::-1]]
             reverse = not reverse
             paths += horizontal_path
         return LinearPaths2D(paths)
