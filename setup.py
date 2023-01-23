@@ -26,7 +26,10 @@ setup(
         "rdp >= 0.8",
         "matplotlib >= 3.5.1",
         "pycairo >= 1.20.1",
-        "qrcode >= 7.3.1"
+        "qrcode >= 7.3.1",
+        "pillow >= 9.0.1",
+        "torch >= 1.13.1",
+        "torchvision >= 0.14.1"
     ],
     classifiers=[
         "Programming Language :: Python :: 3.8",
