@@ -53,10 +53,15 @@ class LinearPaths2D:
         # Get number of segments.
         self.number_of_segments = sum([len(path) - 1 for path in self._paths])
 
-    def viz(self) -> None:
-        """Visualize paths."""
+    def viz(self, color: str = None) -> None:
+        """Visualize paths.
+
+        Args:
+            color: If not set, will color every path differently.
+                Use standard matplotlib color names.
+        """
         for path in self._paths:
-            plt.plot(path[:, 0], path[:, 1])
+            plt.plot(path[:, 0], path[:, 1], color = color)
 
         plt.axis("equal")
 
@@ -390,7 +395,7 @@ class LinearPaths2D:
 
     @staticmethod
     def raster_image(
-        im: npt.NDArray[np.bool], height: float, stroke_size: float
+        im: npt.NDArray[bool], height: float, stroke_size: float
     ) -> "LinearPaths2D":
         """Rasters an bitmap image into a LinearPaths2D object.
 
