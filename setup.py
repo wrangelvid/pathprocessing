@@ -23,7 +23,7 @@ setup(
     install_requires=[
         "numpy >= 1.21.5",
         "svgpathtools >= 1.5.1",
-        "rdp >= 0.8
+        "rdp >= 0.8",
         "matplotlib >= 3.5.1",
         "pycairo >= 1.20.1",
         "qrcode >= 7.3.1"
