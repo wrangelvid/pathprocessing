@@ -271,3 +271,10 @@ class TestLinear2DPaths(unittest.TestCase):
         result = LinearPaths2D.vstack([self.SQUARE] * 5, 0.5).tolist()
 
         self.assertEqual(result, expected_value)
+    
+    def test_make_qrcode(self):
+        expected_value = 32.566  # checksum.
+        paths = LinearPaths2D.make_qrcode('h', 0.2, 0.01)
+        result = round(sum(sum(sum(paths.tolist(), []), [])), 3)
+
+        self.assertEqual(result, expected_value)
