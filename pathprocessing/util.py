@@ -106,11 +106,15 @@ def transfer_style(
     )  # transform it into a torch tensor
 
     if type(content_img) is str:
-        content_img = Image.open(content_img)
+        content_img = Image.open(content_img).convert('RGB')
     content_img = loader(content_img).unsqueeze(0).to(device, torch.float)
 
+    loader = transforms.Compose(
+        [transforms.Resize(content_img.size()[-2:]), transforms.ToTensor()]  # scale imported image
+    )  # transform it into a torch tensor
+
     if type(style_img) is str:
-        style_img = Image.open(style_img)
+        style_img = Image.open(style_img).convert('RGB')
     style_img = loader(style_img).unsqueeze(0).to(device, torch.float)
 
     assert style_img.size() == content_img.size()
@@ -343,7 +347,7 @@ def image_to_drawing(
         raise Exception(f"Provided style: {style}. But must be either {allowed_style}")
 
     if type(img) is str:
-        img = Image.open(img)
+        img = Image.open(img).convert('RGB')
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model_path = os.path.join("./checkpoints", f"netG_{style}.pth")

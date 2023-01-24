@@ -5,6 +5,7 @@ from svgpathtools import svg2paths
 import cairo
 import qrcode
 import os
+import pickle
 
 import numpy.typing as npt
 from typing import Union
@@ -60,6 +61,7 @@ class LinearPaths2D:
             color: If not set, will color every path differently.
                 Use standard matplotlib color names.
         """
+        plt.figure(figsize=(10, 10))
         for path in self._paths:
             plt.plot(path[:, 0], path[:, 1], color = color)
 
@@ -503,3 +505,24 @@ class LinearPaths2D:
         # Raster image.
         im = np.array(qr.make_image(fill_color="black", back_color="white"))
         return LinearPaths2D.raster_image(im, height, stroke_size)
+
+    def save(self, file_path: str) -> None:
+        """Saves the LinearPaths2D object.
+
+        Args:
+            file_path: The file path to save to.
+        """
+        with open(file_path, "wb") as f:
+            pickle.dump(self._paths, f)
+
+    @staticmethod
+    def load(file_path: str) -> "LinearPaths2D":
+        """Loads a LinearPaths2D object.
+
+        Args:
+            file_path: The file path to load from.
+        """
+        paths = None
+        with open(file_path, "rb") as f:
+            paths = pickle.load(f)
+        return LinearPaths2D(paths)
