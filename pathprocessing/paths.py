@@ -336,14 +336,15 @@ class LinearPaths2D:
         paths = []
         # Need to find the continues sub paths.
         for path in sum([path.continuous_subpaths() for path in svg_paths], []):
-            # Need to linearize the path.
-            linear_path = np.concatenate(
-                [
-                    segment.point(np.linspace(0, 1, int(np.ceil(segment.length()))))
-                    for segment in path
-                ]
-            )
-            paths += [np.vstack([linear_path.real, linear_path.imag]).T]
+            if path:
+                # Need to linearize the path.
+                linear_path = np.concatenate(
+                    [
+                        segment.point(np.linspace(0, 1, int(np.ceil(segment.length()))))
+                        for segment in path
+                    ]
+                )
+                paths += [np.vstack([linear_path.real, linear_path.imag]).T]
 
         return LinearPaths2D(paths).vflip()
 
