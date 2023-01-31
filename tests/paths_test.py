@@ -1,5 +1,6 @@
 import unittest
 import numpy as np
+import os
 from pathprocessing.paths import LinearPaths2D
 
 
@@ -198,9 +199,11 @@ class TestLinear2DPaths(unittest.TestCase):
             ]
         )
 
-        expected_value = [[[0, 0], [0, 0.21]],
-                          [[0, 0], [0, 2], [1, 1]],
-                          [[3, -1], [2, 3], [1, 1]]]
+        expected_value = [
+            [[0, 0], [0, 0.21]],
+            [[0, 0], [0, 2], [1, 1]],
+            [[3, -1], [2, 3], [1, 1]],
+        ]
         result = paths.minimum_length(0.21).tolist()
 
         self.assertEqual(result, expected_value)
@@ -271,10 +274,18 @@ class TestLinear2DPaths(unittest.TestCase):
         result = LinearPaths2D.vstack([self.SQUARE] * 5, 0.5).tolist()
 
         self.assertEqual(result, expected_value)
-    
+
     def test_make_qrcode(self):
         expected_value = 32.566  # checksum.
-        paths = LinearPaths2D.make_qrcode('h', 0.2, 0.01)
+        paths = LinearPaths2D.make_qrcode("h", 0.2, 0.01)
         result = round(sum(sum(sum(paths.tolist(), []), [])), 3)
 
+        self.assertEqual(result, expected_value)
+
+    def test_save_load(self):
+        file_name = "tmp.paths"
+        expected_value = self.SQUARE.tolist()
+        self.SQUARE.save(file_name)
+        result = LinearPaths2D.load(file_name).tolist()
+        os.remove(file_name)
         self.assertEqual(result, expected_value)
