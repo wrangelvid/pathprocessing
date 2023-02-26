@@ -26,7 +26,8 @@ setup(
         "rdp >= 0.8",
         "matplotlib >= 3.5.1",
         "pycairo >= 1.20.1",
-        "qrcode >= 7.3.1"
+        "qrcode >= 7.3.1",
+        "scikit-learn >= 1.2.1"
     ],
     classifiers=[
         "Programming Language :: Python :: 3.8",
