@@ -2,6 +2,7 @@ import numpy as np
 from rdp import rdp
 import matplotlib.pyplot as plt
 from svgpathtools import svg2paths
+from sklearn.cluster import KMeans
 import cairo
 import qrcode
 import os
@@ -9,6 +10,11 @@ import pickle
 
 import numpy.typing as npt
 from typing import Union
+
+
+def _path_length(path):
+    pairwise_distance = np.sqrt(np.sum(np.square(path[1:] - path[:-1]), axis=1))
+    return np.sum(pairwise_distance)
 
 
 class LinearPaths2D:
@@ -62,7 +68,7 @@ class LinearPaths2D:
                 Use standard matplotlib color names.
         """
         for path in self._paths:
-            plt.plot(path[:, 0], path[:, 1], color = color)
+            plt.plot(path[:, 0], path[:, 1], color=color)
 
         plt.axis("equal")
 
@@ -229,15 +235,84 @@ class LinearPaths2D:
             as long as the minimum_length.
         """
 
-        def path_length(path):
-            pairwise_distance = np.sqrt(
-                np.sum(np.square(path[1:] - path[:-1]), axis=1)
-            )
-            return np.sum(pairwise_distance)
-
         return LinearPaths2D(
-            list(filter(lambda path: path_length(path) >= minimum_length, self._paths))
+            list(filter(lambda path: _path_length(path) >= minimum_length, self._paths))
         )
+
+    def sorted(
+        self,
+        number_of_groups: int = 1,
+        reference_point: npt.NDArray = np.array([0, 0]),
+        path_reversal: bool = False,
+    ) -> "LinearPaths2D":
+        """Groups path by length and sorts them by connecting distance.
+
+        Groups the paths by length via k means clustering.
+        Then sorts the paths by connecting distance measured between the
+        end of the current path and the start of the next path.
+
+        Args:
+            number_of_groups: Number of groups to sort into.
+            reference_point: Sorts first path by distance to this point.
+            path_reverse: Reverses paths if the end point of the next path
+                is closer to the current path than it's start point.
+
+        Returns:
+            A sorted LinearPaths2D object.
+        """
+        ## cluster paths by length.
+        group_ids = KMeans(n_clusters=number_of_groups).fit_predict(
+            np.array(list(map(_path_length, self._paths))).reshape(-1, 1)
+        )
+        groups = [[] for _ in range(number_of_groups)]
+        for i, id in enumerate(group_ids):
+            groups[id].append(self._paths[i])
+
+        # sort groups descending by average group length.
+        groups = sorted(
+            groups,
+            key=lambda group: np.mean(list(map(_path_length, group))),
+            reverse=True,
+        )
+
+        sorted_groups = []
+        for i, group in enumerate(groups):
+            sorted_groups.append([])
+
+            # sort paths by distance to end point of previous path.
+            start_points = np.array(list(map(lambda path: path[0], group)))
+            end_points = np.array(list(map(lambda path: path[-1], group)))
+
+            queue = list(range(len(group)))
+            while queue:
+                # sort by distance to reference point.
+                distances = np.linalg.norm(start_points - reference_point, axis=1)
+                end_distances = np.linalg.norm(end_points - reference_point, axis=1)
+                next_path_idx = np.argmin(distances)
+                next_end_path_idx = np.argmin(end_distances)
+
+                if (
+                    path_reversal
+                    and end_distances[next_end_path_idx] < distances[next_path_idx]
+                ):
+                    # reverse path if end point is closer to reference point.
+                    sorted_groups[-1].append(group[next_end_path_idx][::-1])
+                    # update reference point.
+                    reference_point = group[next_end_path_idx][-1]
+                    # remove path from queue.
+                    start_points[next_end_path_idx] = np.array([np.inf, np.inf])
+                    end_points[next_end_path_idx] = np.array([np.inf, np.inf])
+                    queue.remove(next_end_path_idx)
+                else:
+                    sorted_groups[-1].append(group[next_path_idx])
+                    # update reference point.
+                    reference_point = group[next_path_idx][0]
+                    # remove path from queue.
+                    start_points[next_path_idx] = np.array([np.inf, np.inf])
+                    end_points[next_path_idx] = np.array([np.inf, np.inf])
+                    queue.remove(next_path_idx)
+
+        return LinearPaths2D(sum(sorted_groups, []))
 
     def unique(self) -> "LinearPaths2D":
         """Prunes duplicate paths.

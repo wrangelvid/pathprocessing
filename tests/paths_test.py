@@ -289,3 +289,21 @@ class TestLinear2DPaths(unittest.TestCase):
         result = LinearPaths2D.load(file_name).tolist()
         os.remove(file_name)
         self.assertEqual(result, expected_value)
+
+    def test_sorted(self):
+        simple_squares = self.SQUARE.shift(1000) + self.SQUARE + self.SQUARE.shift(-0.5)
+        result = LinearPaths2D.sorted(simple_squares).tolist()
+        expected_value = (
+            self.SQUARE + self.SQUARE.shift(-0.5) + self.SQUARE.shift(1000)
+        ).tolist()
+        self.assertEqual(result, expected_value)
+
+        mini_square = self.SQUARE.scale_to(0.1)
+        min_big_square = (
+            mini_square + mini_square + mini_square.shift(1000) + self.SQUARE
+        )
+        result = LinearPaths2D.sorted(min_big_square).tolist()
+        expected_value = (
+            mini_square + mini_square + self.SQUARE + mini_square.shift(1000)
+        ).tolist()
+        self.assertEqual(result, expected_value)
